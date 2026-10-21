@@ -2,4 +2,6 @@ sim
 gls
 *.vcd
 *.bak
+fail_line.txt
 pnr/runs/
+pnr/*.png
