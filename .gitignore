@@ -5,3 +5,4 @@ gls
 fail_line.txt
 pnr/runs/
 pnr/*.png
+report/*.png
