@@ -7,12 +7,13 @@ module tb_mult;
     reg  [3:0] a;
     reg  [3:0] b;
     wire [7:0] p;
+    reg  [7:0] expected;
 
     integer i_a, i_b;
     integer errors = 0;
     integer vectors_checked = 0;
 
-    // Instantiate Design Under Test (DUT)
+    // Design under test
     mult_array dut (
         .clk(clk),
         .rst_n(rst_n),
@@ -21,52 +22,52 @@ module tb_mult;
         .p(p)
     );
 
-    // 10 ns Clock Generation
+    // 10 ns clock
     always #5 clk = ~clk;
 
     initial begin
-        // Setup Waveform Dump
-        $dumpfile("mult.vcd");
-        $dumpvars(0, tb_mult);
 
-        // Initialize Signals
+        // initialise
         clk   = 0;
         rst_n = 0;
         a     = 0;
         b     = 0;
 
-        // Hold Reset active for 2 clock cycles
+	$dumpfile("mult.vcd");
+	$dumpvars(0, tb_mult);
+
+        // hold reset low for the first 2 clock cycles
         repeat (2) @(posedge clk);
-        #1;
         rst_n = 1;
 
-        // Exhaustive Test Loop (256 Combinations)
+        // exhaustive test: 256 combinations
         for (i_a = 0; i_a < 16; i_a = i_a + 1) begin
             for (i_b = 0; i_b < 16; i_b = i_b + 1) begin
-                @(posedge clk);
-                #1;
+                // apply inputs on the falling edge, away from the capturing edge
+                @(negedge clk);
                 a = i_a;
                 b = i_b;
+                expected = a * b;     // * is allowed in the testbench only
 
-                // Wait 2 clock cycles for pipeline delay
+                // edge 1 captures a and b, edge 2 captures the product (latency = 2)
                 repeat (2) @(posedge clk);
-                #1;
+		#2;
 
-                // Verify output
-                if (p !== (a * b)) begin
-                    $display("MISMATCH: a=%d, b=%d | Expected=%d, Got=%d", a, b, (a * b), p);
+
+                if (p !== expected) begin
+                    $display("MISMATCH: a=%0d, b=%0d | Expected=%0d, Got=%0d",
+                             a, b, expected, p);
                     errors = errors + 1;
                 end
                 vectors_checked = vectors_checked + 1;
             end
         end
 
-        // Final Summary Display
-        if (errors == 0) begin
+        // summary
+        if (errors == 0)
             $display("PASS: %0d vectors checked, %0d errors", vectors_checked, errors);
-        end else begin
+        else
             $display("FAIL: %0d vectors checked, %0d errors", vectors_checked, errors);
-        end
 
         $finish;
     end
